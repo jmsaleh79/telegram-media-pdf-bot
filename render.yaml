@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: multilingual-media-helper-bot
+    runtime: docker
+    plan: free
+    healthCheckPath: /healthz
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: WEBHOOK_SECRET
+        generateValue: true
+      - key: PYTHONUNBUFFERED
+        value: "1"
