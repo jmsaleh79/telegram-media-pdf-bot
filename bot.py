@@ -28,7 +28,7 @@ from telegram.ext import (
 )
 
 from converter import SUPPORTED_EXTENSIONS, convert_office_to_pdf
-from downloader import download_media, validate_media_url
+from downloader import classify_media_error, download_media, search_songs, validate_media_url
 from locales import LANGUAGES, get_text
 
 logging.basicConfig(
@@ -124,6 +124,33 @@ def quality_keyboard(user_id: int, language: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(rows)
 
 
+def song_results_keyboard(user_id: int, results: list[dict], language: str) -> InlineKeyboardMarkup:
+    rows = []
+    for index, result in enumerate(results):
+        title = str(result.get("title") or "Track")
+        artist = str(result.get("uploader") or "")
+        source = str(result.get("source") or "")
+        label = " — ".join(part for part in (title, artist, source) if part)[:60]
+        rows.append([InlineKeyboardButton(label, callback_data=f"song|{user_id}|{index}")])
+    return InlineKeyboardMarkup(rows)
+
+
+def localized_media_error(language: str, error: BaseException) -> str:
+    keys = {
+        "youtube_challenge": "youtube_challenge",
+        "rate_limited": "rate_limited",
+        "access_denied": "access_denied",
+        "configuration_error": "cookie_config_error",
+        "restricted": "restricted_media",
+        "not_found": "song_not_found",
+        "unsupported": "unsupported_link",
+        "network": "network_error",
+        "download_error": "error_download",
+    }
+    category = classify_media_error(error)
+    return get_text(language, keys.get(category, "error_download"))
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
     message = update.effective_message
@@ -178,6 +205,27 @@ async def callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             await query.message.reply_text(get_text(language, "help"))
         return
 
+    if data.startswith("song|"):
+        parts = data.split("|")
+        if len(parts) != 3 or not parts[1].isdigit() or int(parts[1]) != user.id or not parts[2].isdigit():
+            await query.answer("This result belongs to another user.", show_alert=True)
+            return
+        results = context.user_data.get("song_search_results", [])
+        index = int(parts[2])
+        if index >= len(results):
+            await query.answer("Search expired. Please search again.", show_alert=True)
+            return
+        result = results[index]
+        media_url = str(result.get("webpage_url") or "")
+        if not validate_media_url(media_url):
+            await query.answer("Unsupported result. Please search again.", show_alert=True)
+            return
+        context.user_data.pop("song_search_results", None)
+        language = store.get_language(user.id) or "en"
+        await query.answer()
+        await perform_download(update, context, media_url, "audio", "audio", language)
+        return
+
     if data.startswith("dl|"):
         parts = data.split("|")
         if len(parts) != 3 or not parts[1].isdigit() or int(parts[1]) != user.id:
@@ -211,8 +259,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
                 return
             await perform_download(update, context, url, "audio", "audio", language)
         else:
-            query = text[:300]
-            await perform_download(update, context, f"ytsearch1:{query}", "audio", "audio", language)
+            await show_song_search(message, context, text[:250], language)
         return
 
     match = re.search(r"https?://\S+", text)
@@ -228,6 +275,29 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     await message.reply_text(
         get_text(language, "choose_quality"),
         reply_markup=quality_keyboard(user.id, language),
+    )
+
+
+async def show_song_search(
+    message,
+    context: ContextTypes.DEFAULT_TYPE,
+    query: str,
+    language: str,
+) -> None:
+    status = await message.reply_text(get_text(language, "searching"))
+    try:
+        results = await asyncio.to_thread(search_songs, query, 5)
+    except Exception as exc:
+        LOGGER.warning("Song search failed (%s)", classify_media_error(exc), exc_info=True)
+        await status.edit_text(localized_media_error(language, exc))
+        return
+    if not results:
+        await status.edit_text(get_text(language, "song_not_found"))
+        return
+    context.user_data["song_search_results"] = results
+    await status.edit_text(
+        get_text(language, "choose_song"),
+        reply_markup=song_results_keyboard(message.from_user.id, results, language),
     )
 
 
@@ -312,11 +382,13 @@ async def perform_download(
                             caption=title[:1024],
                         )
     except Exception as exc:
-        LOGGER.warning("Media download failed: %s", exc, exc_info=True)
+        category = classify_media_error(exc)
+        LOGGER.warning("Media download failed (%s)", category, exc_info=True)
+        error_message = localized_media_error(language, exc)
         try:
-            await status_message.edit_text(get_text(language, "error_download"))
+            await status_message.edit_text(error_message)
         except TelegramError:
-            await message.reply_text(get_text(language, "error_download"))
+            await message.reply_text(error_message)
 
 
 async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

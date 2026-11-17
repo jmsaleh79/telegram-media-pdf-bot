@@ -11,12 +11,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       fonts-noto-core \
       fonts-liberation \
       ca-certificates \
+      curl \
+      unzip \
     && rm -rf /var/lib/apt/lists/* \
     && fc-cache -f
 
+ENV DENO_INSTALL=/usr/local
+RUN curl -fsSL https://deno.land/install.sh -o /tmp/deno-install.sh \
+    && sh /tmp/deno-install.sh \
+    && rm /tmp/deno-install.sh
+
 WORKDIR /app
 COPY requirements.txt .
-RUN python -m pip install --upgrade pip && python -m pip install -r requirements.txt
+RUN python -m pip install --upgrade pip \
+    && python -m pip install --upgrade -r requirements.txt \
+    && yt-dlp --version \
+    && deno --version
 COPY . .
 
 EXPOSE 10000
