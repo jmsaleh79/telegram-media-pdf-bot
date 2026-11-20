@@ -54,6 +54,7 @@ tests/test_hormuz.py   Menus, "coming soon" popup, search, selectors, download f
 What the code does for you:
 
 - Uses the newest yt-dlp (`yt-dlp[default]`), which bundles the EJS solver scripts YouTube now requires, and enables the **Deno** JavaScript runtime (Deno ≥ 2.3 must be in the image). yt-dlp is dropping Python 3.10 soon, so use Python 3.11+ in the Dockerfile.
+- Installs the `bgutil-ytdlp-pot-provider` plugin. When `YOUTUBE_POT_BASE_URL` is configured, downloads automatically use YouTube's `mweb` client with the provider; an explicit `YOUTUBE_PLAYER_CLIENTS` value takes precedence.
 - Retries (network, fragments, extractor), a hard download time limit (`DOWNLOAD_TIMEOUT`), concurrent fragment downloads, and typed errors that become clear, localized messages (bot check, rate limit, private/age-restricted, unavailable, live stream, too large …).
 - Cookies are copied to a private scratch file for each download, so read-only Render Secret Files no longer break yt-dlp when it saves its cookie jar.
 
@@ -61,13 +62,13 @@ Optional settings, only if YouTube blocks your host (nothing here is on by defau
 
 | Situation | What to try |
 |---|---|
-| "Sign in to confirm you're not a bot" | 1) Provide `cookies.txt` from an account you own (below). 2) Route traffic through a proxy you are allowed to use: `YTDLP_PROXY`. 3) Run a PO-token provider (below). |
+| "Sign in to confirm you're not a bot" | This can be caused by YouTube blocking the server's IP. A PO-token provider may help, but does **not** guarantee bypassing IP-based bot checks. If needed, provide `cookies.txt` from an account you own (below) or route traffic through a proxy you are allowed to use: `YTDLP_PROXY`. |
 | Missing JS solver | Make sure `yt-dlp[default]` is installed, or set `YTDLP_REMOTE_COMPONENTS=ejs:github` (downloads solver scripts at runtime). |
 | One player client misbehaves after a YouTube change | `YOUTUBE_PLAYER_CLIENTS=mweb,tv,web_safari` (comma list; see yt-dlp's `player_client`). |
 
 **Cookies.** In the Render service's **Environment → Secret Files**, add `youtube-cookies.txt` (Netscape/Mozilla format), set `YOUTUBE_COOKIES_FILE=/etc/secrets/youtube-cookies.txt` and redeploy. Never commit it or paste it into chat: it holds reusable login-session credentials. Use a dedicated account if possible.
 
-**PO-token provider.** yt-dlp's [PO Token Guide](https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide) recommends a provider plugin such as `bgutil-ytdlp-pot-provider`. Run its server (for example its Docker image, as a separate service), uncomment `bgutil-ytdlp-pot-provider` in `requirements.txt`, and set `YOUTUBE_POT_BASE_URL=http://<provider-host>:4416`.
+**PO-token provider.** yt-dlp's [PO Token Guide](https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide) recommends a provider plugin such as `bgutil-ytdlp-pot-provider`; the plugin is installed by `requirements.txt`. Run the provider's HTTP server separately (for example, its [Docker image](https://github.com/Brainicism/bgutil-ytdlp-pot-provider)), then set `YOUTUBE_POT_BASE_URL=http://<provider-host>:4416`. Keep the provider endpoint private and reachable only by the bot. When this variable is set, the downloader selects `mweb` by default, as recommended by yt-dlp; set `YOUTUBE_PLAYER_CLIENTS` to override it. A PO token may improve request compatibility, but does not guarantee that YouTube will accept traffic from a blocked cloud IP. Use cookies only when necessary; yt-dlp warns that using an account may risk temporary or permanent account restrictions.
 
 **Honest limits.** No code can guarantee access: YouTube may still reject data-centre IPs, and its defences change often. This project does not spoof browser fingerprints or user agents. When YouTube rejects a request, the user gets a clear message instead of a hang. Keep yt-dlp updated and only download content you are authorized to use.
 
