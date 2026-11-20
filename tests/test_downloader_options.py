@@ -7,7 +7,11 @@ def test_po_token_provider_does_not_force_mweb(monkeypatch):
 
     options = ytdlp_base_options(use_cookies=False)
 
-    assert "youtube" not in options["extractor_args"]
+    assert options["extractor_args"]["youtube"]["player_client"] == [
+        "android",
+        "android_vr",
+        "web_safari",
+    ]
     assert options["extractor_args"]["youtubepot-bgutilhttp"]["base_url"] == [
         "http://pot-provider:4416"
     ]
@@ -28,4 +32,8 @@ def test_mweb_is_not_forced_without_po_token_provider(monkeypatch):
 
     options = ytdlp_base_options(use_cookies=False)
 
-    assert "extractor_args" not in options
+    assert options["extractor_args"]["youtube"]["player_client"] == [
+        "android",
+        "android_vr",
+        "web_safari",
+    ]
