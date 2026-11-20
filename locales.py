@@ -20,9 +20,9 @@ COMMAND_DESCRIPTIONS = {
 TEXTS = {
     "ar": {
         # --- language / start -------------------------------------------------
-        "choose_language": "👋 أهلاً بك في <b>هرمز</b>!\nاختر لغتك المفضلة للمتابعة 👇",
+        "choose_language": "👋 أهلاً بك في <b>Pablo Tool</b>!\nاختر لغتك المفضلة للمتابعة 👇",
         "language_saved": "تم حفظ اللغة العربية ✅",
-        "welcome": "👋 مرحباً بك في <b>هرمز</b>!\nتحميل الفيديو والصوت والبحث وتحويل المستندات في مكان واحد.\n\nاختر ما تريد من القائمة 👇",
+        "welcome": "👋 مرحباً بك في <b>Pablo Tool</b>!\nتحميل الفيديو والصوت والبحث وتحويل المستندات في مكان واحد.\n\nاختر ما تريد من القائمة 👇",
         "home_text": "🏠 <b>القائمة الرئيسية</b>\nاختر ما تريد 👇",
         "menu_title": "القائمة الرئيسية",
         # --- menu buttons -----------------------------------------------------
@@ -98,9 +98,9 @@ TEXTS = {
         "help": "ℹ️ <b>المساعدة</b>\n\n📥 أرسل رابطاً من YouTube أو TikTok أو Instagram أو Facebook أو X لتحميله بالجودة التي تختارها أو كصوت MP3.\n🔍 اكتب /search ثم اسم الفيديو للبحث في يوتيوب.\n🎵 «بحث عن أغنية» لتحميل أغنية بصيغة MP3.\n📄 أرسل ملف Word أو Excel لتحويله إلى PDF.\n\n📏 الحدود: الملفات الواردة حتى 20 MB، والصادرة حتى 50 MB.\n⚖️ حمّل فقط المحتوى الذي تملك حق استخدامه.",
     },
     "ru": {
-        "choose_language": "👋 Добро пожаловать в <b>Хормуз</b>!\nВыберите язык, чтобы продолжить 👇",
+        "choose_language": "👋 Добро пожаловать в <b>Pablo Tool</b>!\nВыберите язык, чтобы продолжить 👇",
         "language_saved": "Русский язык сохранён ✅",
-        "welcome": "👋 Добро пожаловать в <b>Хормуз</b>!\nСкачивание видео и аудио, поиск и конвертация документов в одном месте.\n\nВыберите действие в меню 👇",
+        "welcome": "👋 Добро пожаловать в <b>Pablo Tool</b>!\nСкачивание видео и аудио, поиск и конвертация документов в одном месте.\n\nВыберите действие в меню 👇",
         "home_text": "🏠 <b>Главное меню</b>\nВыберите действие 👇",
         "menu_title": "Главное меню",
         "menu_download": "📥 Скачать по ссылке",
@@ -168,9 +168,9 @@ TEXTS = {
         "help": "ℹ️ <b>Помощь</b>\n\n📥 Отправьте ссылку на YouTube, TikTok, Instagram, Facebook или X, чтобы скачать видео в выбранном качестве или MP3.\n🔍 Команда /search и название видео — поиск на YouTube.\n🎵 «Найти песню» — загрузка песни в MP3.\n📄 Отправьте файл Word или Excel для конвертации в PDF.\n\n📏 Лимиты: входящие файлы до 20 МБ, исходящие до 50 МБ.\n⚖️ Загружайте только контент, на который у вас есть права.",
     },
     "en": {
-        "choose_language": "👋 Welcome to <b>Hormuz</b>!\nChoose your preferred language to continue 👇",
+        "choose_language": "👋 Welcome to <b>Pablo Tool</b>!\nChoose your preferred language to continue 👇",
         "language_saved": "English selected ✅",
-        "welcome": "👋 Welcome to <b>Hormuz</b>!\nVideo and audio downloads, search and document conversion in one place.\n\nChoose an option below 👇",
+        "welcome": "👋 Welcome to <b>Pablo Tool</b>!\nVideo and audio downloads, search and document conversion in one place.\n\nChoose an option below 👇",
         "home_text": "🏠 <b>Main menu</b>\nChoose an option 👇",
         "menu_title": "Main menu",
         "menu_download": "📥 Download from link",
