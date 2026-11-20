@@ -54,7 +54,7 @@ tests/test_hormuz.py   Menus, "coming soon" popup, search, selectors, download f
 What the code does for you:
 
 - Uses the newest yt-dlp (`yt-dlp[default]`), which bundles the EJS solver scripts YouTube now requires, and enables the **Deno** JavaScript runtime (Deno ≥ 2.3 must be in the image). yt-dlp is dropping Python 3.10 soon, so use Python 3.11+ in the Dockerfile.
-- Installs the `bgutil-ytdlp-pot-provider` plugin. When `YOUTUBE_POT_BASE_URL` is configured, the provider is passed to yt-dlp; an explicit `YOUTUBE_PLAYER_CLIENTS` value is passed separately and takes precedence.
+- Installs the `bgutil-ytdlp-pot-provider` plugin. When `YOUTUBE_POT_BASE_URL` is configured, the provider is passed to yt-dlp. The bot tries the official `android`, `android_vr`, and `web_safari` YouTube clients in guest mode; `YOUTUBE_PLAYER_CLIENTS` replaces this fallback.
 - Retries (network, fragments, extractor), a hard download time limit (`DOWNLOAD_TIMEOUT`), concurrent fragment downloads, and typed errors that become clear, localized messages (bot check, rate limit, private/age-restricted, unavailable, live stream, too large …).
 - Cookies are copied to a private scratch file for each download, so read-only Render Secret Files no longer break yt-dlp when it saves its cookie jar.
 
