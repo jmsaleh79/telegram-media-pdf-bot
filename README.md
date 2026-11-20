@@ -1,4 +1,4 @@
-# Hormuz (هرمز) — Telegram Media Helper — العربية / Русский / English
+# — Telegram Media Helper — العربية / Русский / English
 
 Telegram bot implemented with Python, `python-telegram-bot`, FastAPI webhooks, yt-dlp, FFmpeg and LibreOffice. It is packaged for deployment as a Docker Web Service on Render. You do **not** need to run the bot on your own computer.
 
