@@ -1,5 +1,9 @@
 python-telegram-bot>=22.8,<23
 fastapi>=0.115,<1
 uvicorn[standard]>=0.30,<1
-yt-dlp[default]
+# The "default" extra installs yt-dlp-ejs (YouTube JS challenge solver scripts).
+# Rebuild with "Clear build cache" regularly so Render picks up the newest yt-dlp.
+yt-dlp[default]>=2026.8.19
 psycopg[binary]>=3.2,<4
+# Optional (see README, "YouTube reliability"): PO-token provider plugin for yt-dlp.
+# bgutil-ytdlp-pot-provider

@@ -1,78 +1,108 @@
-# Telegram Media Helper — Arabic / Русский / English
+# Hormuz (هرمز) — Telegram Media Helper — العربية / Русский / English
 
 Telegram bot implemented with Python, `python-telegram-bot`, FastAPI webhooks, yt-dlp, FFmpeg and LibreOffice. It is packaged for deployment as a Docker Web Service on Render. You do **not** need to run the bot on your own computer.
 
 ## Features
 
-- `/start` asks first-time users to choose Arabic, Russian or English; the preference is saved in SQLite by default, with optional PostgreSQL support via `DATABASE_URL`. Returning users see the main menu in their saved language. The menu includes a language-change button.
-- Video links from YouTube, TikTok, Instagram, Facebook and X/Twitter show quality choices (best, 720p, 480p, 360p) and MP3. Download status messages are localized. Song search checks YouTube and SoundCloud, ranks results, and lets the user choose the exact result before downloading. Title/artist metadata and a thumbnail are sent when available.
-- DOC, DOCX, XLS and XLSX Telegram documents are converted to PDF with LibreOffice. The Docker image includes Noto fonts for Arabic/Russian glyph coverage.
+- **Organised inline menus** (one message that is edited in place, every screen has a 🔙 button):
+
+  ```text
+  🏠 Home
+   ├─ 📥 Download from link      send a link → quality picker (best / 720p / 480p / 360p / MP3)
+   ├─ 🔍 YouTube search          type a name → result buttons (title + duration) → download starts
+   ├─ 🎵 Find a song             YouTube + SoundCloud, ranked, → MP3
+   ├─ 🧰 Tools
+   │    └─ 📄 Word/Excel → PDF
+   ├─ تحميل الأفلام والمسلسلات 🎬   "coming soon" popup (not active yet)
+   ├─ ⚙️ Settings → 🌐 Language
+   └─ ℹ️ Help
+  ```
+
+- `/start` asks first-time users to choose Arabic, Russian or English (the default is guessed from their Telegram language); the preference is saved in SQLite by default, with optional PostgreSQL support via `DATABASE_URL`. Commands: `/menu`, `/search <name>`, `/help`.
+- **YouTube search** works from the menu button or with `/search <name>`. Each result is a button showing the title and the duration. A **🎬 Video / 🎧 MP3** toggle under the results decides what a tap downloads (video defaults to 720p). Searches are "flat" (one request, no per-result extraction), so they are fast and gentle on YouTube.
+- **Movies & Series** is a placeholder: the button is visible but only shows a popup saying the feature is under development. (Telegram cannot grey-out an inline button, so a popup is the closest thing to "disabled".) To activate it later, replace the `movies` branch in `on_navigation()` in `bot.py`.
+- Video links from YouTube, TikTok, Instagram, Facebook and X/Twitter. Quality selectors prefer H.264 + AAC MP4 (plays inline in Telegram) and cap the video stream so the final file fits Telegram's 50 MB limit. If a file is still too large the bot **automatically retries at a lower quality** (MP3: a lower bitrate). Downloads abort early instead of wasting time on files that cannot be sent.
+- Status messages in the user's language at every step: *searching → queued → downloading 10 % … 100 % → sending → done*. One download per user at a time and two globally; the rest wait in a visible queue.
+- DOC, DOCX, XLS and XLSX documents are converted to PDF with LibreOffice (Noto fonts for Arabic/Russian are in the Docker image).
 - FastAPI provides `/healthz` and a secret-checked Telegram webhook at `/telegram`.
 
 ## Project files
 
 ```text
-bot.py                 Telegram handlers, SQLite/PostgreSQL preferences, FastAPI webhook
-locales.py             Arabic/Russian/English interface text
-downloader.py          yt-dlp URL validation, format selection and download
-converter.py           LibreOffice document-to-PDF conversion
+bot.py                 Menus, handlers, queueing, uploads, FastAPI webhook, preferences store
+locales.py             Arabic/Russian/English texts (all screens, buttons, errors)
+downloader.py          yt-dlp options, size-aware format selectors, search, download, error classes
+converter.py           LibreOffice document-to-PDF conversion (unchanged)
 requirements.txt       Python dependencies
-Dockerfile             Python + latest yt-dlp + Deno + FFmpeg + LibreOffice
+Dockerfile             Python 3.11+ + latest yt-dlp + Deno (>= 2.3) + FFmpeg + LibreOffice
 render.yaml            Render Blueprint (free Docker Web Service)
-.env.example            Local reference for environment-variable names (do not upload real secrets)
-tests/test_core.py     Unit tests for language, URL and format-selection helpers
-tests/test_database.py PostgreSQL backend-selection unit test
-tests/test_downloader_resilience.py Search ranking, cookies and error tests
-tests/test_bot_song_search.py Inline result buttons and localized errors
+.env.example           Reference for environment-variable names (do not upload real secrets)
+tests/conftest.py      Test setup (temporary database, converter stub)
+tests/test_hormuz.py   Menus, "coming soon" popup, search, selectors, download flow, errors
 ```
 
 ## Deploy on Render (no local bot runtime required)
 
 1. **Create a bot token.** In Telegram open [@BotFather](https://t.me/BotFather), run `/newbot`, and copy the token. Keep it private.
-2. **Create a GitHub repository.** Create a new empty repository. Extract the supplied project archive on your computer if needed, then use GitHub's **Add file → Upload files** to upload the root files (`bot.py`, `locales.py`, `downloader.py`, `converter.py`, `requirements.txt`, `Dockerfile`, `render.yaml`, `.gitignore`, `.env.example`, and this README). The `tests` directory is optional for deployment. Do not upload `.env` or your bot token.
-3. **Create the Render service.** In Render choose **New + → Blueprint**, connect the GitHub repository, and deploy the `render.yaml` Blueprint. It creates a Docker web service with the free plan selected. During setup add `BOT_TOKEN` as a secret environment variable. `WEBHOOK_SECRET` is generated by the Blueprint; Render supplies `RENDER_EXTERNAL_HOSTNAME` automatically. Do not set `WEBHOOK_URL` unless you need to override the automatically generated URL. If language settings must survive Render sleep/redeploys, also set `DATABASE_URL` to a PostgreSQL database you control; without it, the default SQLite file is temporary.
-4. Wait for the Docker build and deployment to complete. The build prints the installed `yt-dlp` and Deno versions. Check `/healthz`, then send `/start` to the bot. For a later yt-dlp update, use Render **Manual Deploy → Clear build cache & deploy** so a cached dependency layer cannot keep the old version.
-5. For updates, push/upload changes to the connected GitHub repository and Render will redeploy it.
+2. **Create a GitHub repository** and upload the root files (`bot.py`, `locales.py`, `downloader.py`, `converter.py`, `requirements.txt`, `Dockerfile`, `render.yaml`, `.gitignore`, `.env.example`, this README). The `tests` directory is optional. Do not upload `.env` or your bot token.
+3. **Create the Render service.** In Render choose **New + → Blueprint**, connect the repository, and deploy `render.yaml`. Add `BOT_TOKEN` as a secret environment variable. `WEBHOOK_SECRET` is generated by the Blueprint; Render supplies `RENDER_EXTERNAL_HOSTNAME`. If language settings must survive Render sleep/redeploys, also set `DATABASE_URL` to a PostgreSQL database you control.
+4. Wait for the build, check `/healthz`, then send `/start` to the bot. To pick up a newer yt-dlp use **Manual Deploy → Clear build cache & deploy**.
+5. For updates, push changes to the repository and Render redeploys. The bot registers its `/` command menu (in all three languages) at startup.
 
-The application binds to Render's `PORT` and registers its HTTPS webhook on startup. `WEBHOOK_SECRET` protects incoming webhook requests; do not publish it.
+### YouTube reliability
 
-### Optional YouTube cookies (only if needed)
+What the code does for you:
 
-Try a deployment without cookies first. If YouTube still asks for sign-in, you may provide a **Netscape/Mozilla-format** `cookies.txt` from an account you own. In the Render service's **Environment → Secret Files**, add a file named `youtube-cookies.txt`, then add the environment variable `YOUTUBE_COOKIES_FILE=/etc/secrets/youtube-cookies.txt` and redeploy. Never commit this file to GitHub, paste it into chat, or share it: it contains reusable login-session credentials. Use a dedicated account if possible and rotate/revoke the session if it leaks. Cookies can expire, and a cookie exported on your home connection may not work from Render's different outbound IP.
+- Uses the newest yt-dlp (`yt-dlp[default]`), which bundles the EJS solver scripts YouTube now requires, and enables the **Deno** JavaScript runtime (Deno ≥ 2.3 must be in the image). yt-dlp is dropping Python 3.10 soon, so use Python 3.11+ in the Dockerfile.
+- Retries (network, fragments, extractor), a hard download time limit (`DOWNLOAD_TIMEOUT`), concurrent fragment downloads, and typed errors that become clear, localized messages (bot check, rate limit, private/age-restricted, unavailable, live stream, too large …).
+- Cookies are copied to a private scratch file for each download, so read-only Render Secret Files no longer break yt-dlp when it saves its cookie jar.
 
-Deno and the matching yt-dlp EJS components enable current YouTube player JavaScript handling. They do **not** defeat YouTube's IP reputation checks or sign-in/bot challenges. A generic or spoofed `User-Agent` is not a reliable fix; if the hosting IP is blocked, use a permitted source or a host/network YouTube accepts.
+Optional settings, only if YouTube blocks your host (nothing here is on by default):
+
+| Situation | What to try |
+|---|---|
+| "Sign in to confirm you're not a bot" | 1) Provide `cookies.txt` from an account you own (below). 2) Route traffic through a proxy you are allowed to use: `YTDLP_PROXY`. 3) Run a PO-token provider (below). |
+| Missing JS solver | Make sure `yt-dlp[default]` is installed, or set `YTDLP_REMOTE_COMPONENTS=ejs:github` (downloads solver scripts at runtime). |
+| One player client misbehaves after a YouTube change | `YOUTUBE_PLAYER_CLIENTS=mweb,tv,web_safari` (comma list; see yt-dlp's `player_client`). |
+
+**Cookies.** In the Render service's **Environment → Secret Files**, add `youtube-cookies.txt` (Netscape/Mozilla format), set `YOUTUBE_COOKIES_FILE=/etc/secrets/youtube-cookies.txt` and redeploy. Never commit it or paste it into chat: it holds reusable login-session credentials. Use a dedicated account if possible.
+
+**PO-token provider.** yt-dlp's [PO Token Guide](https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide) recommends a provider plugin such as `bgutil-ytdlp-pot-provider`. Run its server (for example its Docker image, as a separate service), uncomment `bgutil-ytdlp-pot-provider` in `requirements.txt`, and set `YOUTUBE_POT_BASE_URL=http://<provider-host>:4416`.
+
+**Honest limits.** No code can guarantee access: YouTube may still reject data-centre IPs, and its defences change often. This project does not spoof browser fingerprints or user agents. When YouTube rejects a request, the user gets a clear message instead of a hang. Keep yt-dlp updated and only download content you are authorized to use.
 
 ## Important limitations (read before deploying)
 
-- **Render's free web services spin down after 15 minutes without inbound traffic.** A health endpoint does not keep a free instance awake. The first message after a sleep can take time while it wakes; Telegram retries webhook delivery if the endpoint is unavailable. Continuous 24/7 uptime requires a paid always-on service or another host that offers it. No code can override Render's free-plan sleep policy. See [Render free instances](https://render.com/docs/free).
-- The default language database is `/tmp/telegram_bot.sqlite3`. It is writable on the instance but **ephemeral**: Render loses local filesystem changes whenever the free service spins down, restarts, or redeploys, so language preferences may need to be selected again. For durable preferences, set `DATABASE_URL` to an external PostgreSQL connection string (the project supports PostgreSQL), or use a paid persistent disk and set `DATABASE_PATH` to its mounted path. Render's free service does not include a persistent disk.
-- Telegram's hosted Bot API currently limits incoming bot downloads to about **20 MB** and bot uploads to **50 MB**. This project rejects larger incoming documents and stops uploads above 49 MiB. See [Telegram file limits](https://core.telegram.org/bots/api#sending-files).
-- YouTube may reject cloud-hosting IPs with a sign-in/bot challenge. Updating yt-dlp and installing Deno/EJS fixes stale versions and missing player-JavaScript support, but cannot guarantee acceptance by YouTube. Optional cookies may help with account-gated access, not reliably with an IP block; this bot does not spoof browser fingerprints or bypass access controls. Keep yt-dlp updated and only download content you are authorized to use.
-- Conversion fidelity depends on the source document and embedded fonts. Noto fonts cover common Arabic and Russian characters, but no converter can guarantee identical layout for every Word/Excel file. Password-protected or damaged documents will fail.
-- Free instances have limited compute and memory. Long videos, high-resolution files, and large LibreOffice documents may exceed available resources even when under Telegram's file-size limit.
+- **Render's free web services spin down after 15 minutes without inbound traffic.** The first message after a sleep can take time; Telegram retries webhook delivery. 24/7 uptime requires a paid always-on service. See [Render free instances](https://render.com/docs/free).
+- The default language database is `/tmp/telegram_bot.sqlite3` and is **ephemeral** on Render's free plan. Set `DATABASE_URL` (external PostgreSQL) or use a paid persistent disk with `DATABASE_PATH`.
+- Telegram's hosted Bot API limits incoming bot downloads to about **20 MB** and bot uploads to **50 MB**. Incoming documents above ~19 MB are rejected; uploads above 49 MiB are never attempted.
+- Conversion fidelity depends on the source document and fonts; password-protected or damaged documents fail.
+- Free instances have limited CPU and memory. Long videos and large LibreOffice documents may exceed them even when under Telegram's size limit.
 
 ## Environment variables
 
 | Name | Required | Description |
 |---|---:|---|
 | `BOT_TOKEN` | Yes | Token from BotFather; set as a Render secret. |
-| `WEBHOOK_SECRET` | Yes | Random string used for Telegram's secret-token header. Generated by `render.yaml`. |
+| `WEBHOOK_SECRET` | Yes | Random string for Telegram's secret-token header. Generated by `render.yaml`. |
 | `RENDER_EXTERNAL_HOSTNAME` | Render supplies it | Used to form `https://<host>/telegram`. |
-| `WEBHOOK_URL` | No | Override the full webhook URL, including `/telegram`; HTTPS is required. |
+| `WEBHOOK_URL` | No | Override the full webhook URL, including `/telegram`; HTTPS required. |
 | `DATABASE_PATH` | No | SQLite file path; default `/tmp/telegram_bot.sqlite3`. Ignored when `DATABASE_URL` is set. |
-| `DATABASE_URL` | No | PostgreSQL connection string for durable user preferences; use a trusted external PostgreSQL provider. |
-| `YOUTUBE_COOKIES_FILE` | No | Path to an optional Netscape-format cookies file; e.g. `/etc/secrets/youtube-cookies.txt`. Store it as a Render Secret File, never in Git. |
+| `DATABASE_URL` | No | PostgreSQL connection string for durable preferences. |
+| `YOUTUBE_COOKIES_FILE` | No | Path to a Netscape-format cookies file, e.g. `/etc/secrets/youtube-cookies.txt`. |
+| `YTDLP_PROXY` | No | Proxy URL (`http://`, `https://`, `socks5://`) used by yt-dlp. |
+| `YOUTUBE_PLAYER_CLIENTS` | No | Comma list for yt-dlp's YouTube `player_client`. |
+| `YOUTUBE_POT_BASE_URL` | No | URL of a bgutil PO-token provider server (plugin required). |
+| `YTDLP_REMOTE_COMPONENTS` | No | Comma list such as `ejs:github`, only if `yt-dlp-ejs` is not installed. |
+| `DOWNLOAD_TIMEOUT` | No | Seconds before a download is aborted; default `900`. |
+| `MP3_BITRATE` | No | Starting MP3 bitrate in kbps; default `192` (falls back to 128, then 64 for long tracks). |
 | `LOG_LEVEL` | No | Python logging level; default `INFO`. |
 
 ## Tests
 
-The tests cover pure helper behavior and need no bot token or external media access:
+The tests need no bot token and no internet (downloads use a small local HTTP server; they are skipped if FFmpeg is missing):
 
 ```bash
 python -m pip install -r requirements.txt pytest
 python -m pytest -q
 ```
-
-## Notes on search and quality
-
-MP3 search gathers YouTube and SoundCloud matches, ranks them against the requested title/artist, and presents choices before downloading. Search availability depends on those providers. Quality selectors request the selected maximum height where available. FFmpeg is required for MP3 extraction and merging separate video/audio streams.
