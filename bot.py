@@ -72,6 +72,8 @@ logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
+# httpx logs Telegram Bot API URLs at INFO; those URLs contain the bot token.
+logging.getLogger("httpx").setLevel(logging.WARNING)
 LOGGER = logging.getLogger("telegram_media_bot")
 BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", "").strip()
