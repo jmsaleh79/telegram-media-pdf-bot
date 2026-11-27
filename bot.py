@@ -1012,12 +1012,13 @@ async def lifespan(app: FastAPI):
     if not WEBHOOK_SECRET:
         raise RuntimeError("WEBHOOK_SECRET environment variable is required")
     player_clients = os.getenv("YOUTUBE_PLAYER_CLIENTS", "").strip()
+    pot_provider_configured = bool(os.getenv("YOUTUBE_POT_BASE_URL", "").strip())
     LOGGER.info(
         "YouTube downloader configuration: player_clients=%s cookies_configured=%s "
         "po_token_provider_configured=%s",
-        player_clients or "android,android_vr,web_safari (default)",
+        player_clients or ("mweb (PO-token provider)" if pot_provider_configured else "yt-dlp automatic"),
         bool(os.getenv("YOUTUBE_COOKIES_FILE", "").strip()),
-        bool(os.getenv("YOUTUBE_POT_BASE_URL", "").strip()),
+        pot_provider_configured,
     )
     telegram_app = build_application(BOT_TOKEN)
     await telegram_app.initialize()
