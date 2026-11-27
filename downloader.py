@@ -283,11 +283,10 @@ def ytdlp_base_options(scratch_dir: str | Path | None = None, use_cookies: bool 
 
     extractor_args: dict[str, dict[str, list[str]]] = {}
     clients = _env_list("YOUTUBE_PLAYER_CLIENTS")
-    if not clients:
-        # Android and Android VR are valid fallback clients for guest/IP-blocked hosts.
-        # An explicit YOUTUBE_PLAYER_CLIENTS value replaces this fallback entirely.
-        clients = ["android", "android_vr", "web_safari"]
     pot_url = os.getenv("YOUTUBE_POT_BASE_URL", "").strip()
+    if pot_url and not clients:
+        # yt-dlp recommends mweb when a PO-token provider is available.
+        clients = ["mweb"]
     if clients:
         extractor_args["youtube"] = {"player_client": clients}
     if pot_url:
